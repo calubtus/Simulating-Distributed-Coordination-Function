@@ -14,16 +14,18 @@ class Simulation:
     cw_max = 1024
 
     # Packet Parameters
-    ack = 2
-    sifs = 1
     difs = 4
+    sifs = 1
+    rts = 2
+    cts = 2
+    ack = 2
     tx_slots = packet_size / (bandwidth * slot_duration)
 
     def generate_backoff(self, extension):
         return np.random.randint(0, self.cw_base * 2**extension)
 
     def generate_transmission(self, backoff):
-        return self.difs + self.tx_slots + backoff + self.sifs + self.ack
+        return self.difs + backoff + self.rts + self.sifs + self.cts + self.sifs + self.tx_slots + self.sifs + self.ack
 
     def run_simulation(self):
         simulation_report = []
@@ -55,7 +57,7 @@ class Simulation:
             if router1.arrival_slot[router1.slot_index] <= current_time_slot and router2.arrival_slot[router2.slot_index] <= current_time_slot:
                 # Check if for possible packet collision or detection of medium usage
                 if router1.backoff == router2.backoff:
-                    current_time_slot += self.generate_transmission(router1.backoff)
+                    current_time_slot += self.difs + router1.backoff + self.rts + self.sifs + self.cts
                     extend_backoff += 1
                     collision_counter += 1
                 elif router1.backoff < router2.backoff:
@@ -122,6 +124,7 @@ class Router(Simulation):
         interpacket_time_slot = np.ceil(exponential_distribution / self.slot_duration)
         # Find the approximated packet slot arrival time
         arrival_time_slot = np.cumsum(interpacket_time_slot)
+
         # Pad with extra values arriaval times that are greater then simulation tim so there is no overflow when reading data
         arrival_time_slot_padded = np.append(arrival_time_slot, np.full(arrival_rate * self.simulation_time, self.simulation_slots))
         
